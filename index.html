@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nomic Studio Raya Booking</title>
+    <!-- Tailwind CSS for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            /* Branding Colors */
+            --brand-orange: #f97316;
+            --brand-orange-hover: #ea580c;
+            --brand-black: #111111;
+            --brand-gray: #f3f4f6;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            
+            --border-radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #e5e5e5;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0;
+        }
+
+        .app-container {
+            max-width: 480px;
+            width: 100%;
+            background: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--brand-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        header {
+            background: var(--brand-black);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-area img {
+            width: 35px;
+            height: auto;
+            border-radius: 6px;
+        }
+
+        .logo-area h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Visitor Badge Style */
+        .visitor-badge {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Components */
+        .carousel-container {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            background: #ddd;
+        }
+
+        .carousel-slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .carousel-slide.active { opacity: 1; }
+
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            z-index: 10;
+            font-size: 1.2rem;
+        }
+        .carousel-btn:hover { background: rgba(0, 0, 0, 0.7); }
+        .carousel-btn.prev { left: 10px; }
+        .carousel-btn.next { right: 10px; }
+
+        .ticker-wrap {
+            background: var(--brand-orange);
+            color: white;
+            overflow: hidden;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            cursor: default;
+        }
+
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: marquee 15s linear infinite;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .ticker-wrap:hover .ticker { animation-play-state: paused; }
+        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+
+        .dashboard-grid {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .dash-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .dash-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+            border-color: var(--brand-orange);
+        }
+        .dash-card.full-width {
+            grid-column: span 2;
+            text-align: left;
+            align-items: flex-start;
+            flex-direction: row;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+
+        .card-icon { font-size: 2rem; margin-bottom: 10px; color: var(--brand-orange); }
+        .full-width .card-icon { margin-bottom: 0; font-size: 1.8rem; background: #fff7ed; padding: 10px; border-radius: 50%; }
+        .card-title { font-weight: 700; font-size: 0.95rem; color: var(--brand-black); margin-bottom: 4px; }
+        .card-desc { font-size: 0.75rem; color: var(--text-light); line-height: 1.3; }
+
+        .step-section { display: none; padding: 20px; flex-grow: 1; animation: fadeIn 0.3s ease; }
+        .step-section.active { display: block; }
+        #step-landing { padding: 0; background: #fafafa; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--brand-black);
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .calendar-header {
+            background: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 20px; }
+        .day-name { font-size: 0.7rem; color: #999; text-align: center; font-weight: 700; margin-bottom: 5px; }
+        .day-cell {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .day-cell:not(.empty):hover { background: #fff7ed; color: var(--brand-orange); }
+        .day-cell.selected { background: var(--brand-orange); color: white; font-weight: bold; }
+        .day-cell.today { border-color: var(--brand-orange); color: var(--brand-orange); font-weight: bold; }
+        .day-cell.special-date { background-color: #fef08a; color: #854d0e; font-weight: bold; border: 1px solid #facc15; }
+        .day-cell.special-date.selected { background-color: var(--brand-orange); color: white; border-color: transparent; }
+        .day-cell.disabled-date { background-color: #f3f4f6; color: #d1d5db; cursor: not-allowed; border: 1px solid #e5e7eb; text-decoration: line-through; }
+
+        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .slot-section-header { grid-column: 1 / -1; margin-top: 15px; margin-bottom: 5px; font-weight: 800; color: var(--brand-black); font-size: 0.9rem; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .slot-btn { padding: 12px 5px; background: white; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; position: relative; }
+        .slot-btn:hover:not(:disabled) { border-color: var(--brand-orange); color: var(--brand-orange); }
+        .slot-btn.disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
+        .slot-btn.selected-slot { background: var(--brand-orange); color: white; border-color: var(--brand-orange); }
+        
+        .slot-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 10px; font-weight: bold; }
+
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; font-size: 0.95rem; }
+        input:focus, textarea:focus { outline: none; border-color: var(--brand-orange); }
+        label { display: block; margin-bottom: 5px; font-size: 0.85rem; font-weight: 600; }
+
+        .btn-action {
+            width: 100%;
+            padding: 15px;
+            background: var(--brand-orange);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(249, 115, 22, 0.2);
+            margin-top: 10px;
+        }
+        .btn-action:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; margin-top: 0; width: auto; }
+        .btn-danger { background: #ef4444; box-shadow: none; }
+        .btn-success { background: #25d366; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3); }
+        .btn-back { background: white; color: var(--text-dark); border: 1px solid #ddd; box-shadow: none; }
+        .btn-nav { background: none; border: 1px solid #ddd; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .summary-box { background: #222; color: white; padding: 20px; border-radius: var(--border-radius); margin-bottom: 20px; }
+        .status-card { background: white; border-left: 4px solid var(--brand-orange); padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 15px; }
+
+        .footer { margin-top: auto; padding: 20px; text-align: center; font-size: 0.7rem; color: #aaa; background: #f9f9f9; border-top: 1px solid #eee; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .admin-icon { cursor: pointer; font-size: 1rem; opacity: 0.3; transition: opacity 0.3s; text-decoration: none; }
+        .admin-icon:hover { opacity: 1; }
+
+        .memo-box { background: #fff7ed; border: 1px solid #ffedd5; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .memo-title { color: var(--brand-orange); font-weight: 800; text-transform: uppercase; margin-bottom: 8px; font-size: 0.9rem; }
+        .memo-list { list-style-type: none; padding: 0; font-size: 0.85rem; color: #444; }
+        .memo-list li { margin-bottom: 8px; padding-left: 20px; position: relative; }
+        .memo-list li::before { content: "•"; color: var(--brand-orange); font-weight: bold; position: absolute; left: 0; }
+
+        .admin-section-box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 20px; background: #f9f9f9; }
+        .admin-section-title { font-weight: bold; margin-bottom: 10px; color: var(--brand-black); display: flex; justify-content: space-between; align-items: center; }
+        .item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+
+        .toast-overlay { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast-msg { background: rgba(17, 17, 17, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto; display: flex; align-items: center; gap: 8px; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .rating-summary { background: white; padding: 20px; border-radius: var(--border-radius); text-align: center; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid #f0f0f0; }
+        .rating-big { font-size: 2.5rem; font-weight: 800; color: var(--brand-black); line-height: 1; }
+        .rating-stars { color: #facc15; font-size: 1.2rem; margin: 5px 0; }
+        .review-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 10px; }
+        .review-header { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; }
+        .review-author { font-weight: bold; }
+        .review-date { color: #999; font-size: 0.75rem; }
+        .review-stars { color: #facc15; font-size: 0.8rem; }
+        .review-text { font-size: 0.9rem; color: #444; line-height: 1.4; margin-top: 5px; }
+
+        .star-input { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; }
+        .star-icon { font-size: 2rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
+        .star-icon.active { color: #facc15; }
+
+        /* New Styles for Database List */
+        .db-card {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .db-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .db-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+        .status-select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .status-select.PENDING { color: #f97316; border-color: #f97316; }
+        .status-select.DEPOSIT { color: #3b82f6; border-color: #3b82f6; }
+        .status-select.SELESAI { color: #16a34a; border-color: #16a34a; }
+        .status-select.CANCEL { color: #ef4444; border-color: #ef4444; }
+
+        /* Full Table Styles */
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 10px; border: 1px solid #eee; text-align: left; vertical-align: top; }
+        th { background-color: #f9fafb; font-weight: 600; color: #444; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
+        .badge.PENDING { background: #fff7ed; color: #c2410c; }
+        .badge.DEPOSIT { background: #eff6ff; color: #1d4ed8; }
+        .badge.SELESAI { background: #f0fdf4; color: #15803d; }
+        .badge.CANCEL { background: #fef2f2; color: #991b1b; }
+
+        /* Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 10000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4); 
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; 
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%; 
+            max-width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover { color: black; }
+
+        /* Theme Selection Styles inside Modal */
+        .theme-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            text-align: left;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover:not(:disabled) {
+            border-color: var(--brand-orange);
+            background: #fff7ed;
+        }
+        .theme-btn:disabled {
+            background: #f3f4f6;
+            color: #ccc;
+            border-color: #eee;
+            cursor: not-allowed;
+        }
+        .theme-btn strong { display: block; font-size: 1rem; }
+        .theme-btn small { font-weight: normal; color: #666; font-size: 0.8rem; }
+
+        /* Action Buttons */
+        .btn-table { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; color: white; margin-right: 5px; }
+        .btn-edit { background-color: #3b82f6; } /* Blue */
+        .btn-delete { background-color: #ef4444; } /* Red */
+        .btn-table:hover { opacity: 0.8; }
+        
+        /* Admin Indicator Style */
+        .admin-active { color: #16a34a !important; opacity: 1 !important; font-weight: bold; }
+
+        /* Payment Section Styles */
+        .payment-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .qr-code {
+            max-width: 200px;
+            margin: 0 auto 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+        }
+        .bank-details {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px dashed #ccc;
+        }
+        .account-number {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--brand-black);
+            cursor: pointer;
+            padding: 5px;
+            display: inline-block;
+            transition: color 0.2s;
+        }
+        .account-number:hover {
+            color: var(--brand-orange);
+        }
+        .copy-tooltip {
+            font-size: 0.7rem;
+            color: #666;
+            display: block;
+            margin-top: -5px;
+        }
+        
+        /* File Upload Styling */
+        .file-upload-wrapper {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .file-upload-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .custom-file-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        /* Floating WhatsApp Button */
+        .float-wa {
+            position: fixed;
+            bottom: 90px; /* Above footer */
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background-color: #25d366;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 99999; /* Topmost */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: move; /* Indicate draggable */
+            transition: transform 0.1s, box-shadow 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .float-wa:active {
+            transform: scale(0.9);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .float-wa svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+            pointer-events: none; /* Let clicks pass to div */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div style="font-size:0.9rem; font-weight:600; color:#555;">Memuatkan Aplikasi...</div>
+    </div>
+
+    <!-- Edit Booking Modal -->
+    <div id="editBookingModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="window.closeEditModal()">&times;</span>
+            <h2 style="border:none; margin-bottom:15px; font-size:1.1rem;">Kemaskini Tempahan</h2>
+            <input type="hidden" id="editBookingId">
+            
+            <label>Nama Pelanggan</label>
+            <input type="text" id="editName">
+            
+            <label>No. Telefon</label>
+            <input type="text" id="editPhone">
+            
+            <label>Tarikh (YYYY-MM-DD)</label>
+            <input type="date" id="editDate">
+            
+            <label>Masa (cth: 09:00 AM, 09:20 AM)</label>
+            <input type="text" id="editTime" placeholder="Format: 09:00 AM, 09:20 AM">
+            
+            <button class="btn-action" onclick="window.saveEditedBooking()">Simpan Perubahan</button>
+        </div>
+    </div>
+
+    <!-- Receipt View Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content" style="max-width: 500px; text-align:center;">
+            <span class="close-modal" onclick="window.closeReceiptModal()">&times;</span>
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Resit Pembayaran</h3>
+            <div id="receiptPreviewContainer" style="overflow:auto; max-height:60vh;">
+                <!-- Image or PDF will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Selection Modal -->
+    <div id="themeModal" class="modal">
+        <div class="modal-content" style="max-width: 350px; text-align:center;">
+            <span class="close-modal" onclick="window.closeThemeModal()">&times;</span>
+            <h3 style="margin-bottom: 5px; font-size: 1.1rem;">Pilih Tema</h3>
+            <p id="themeModalTime" style="color:var(--brand-orange); font-weight:bold; margin-bottom:15px; font-size:0.9rem;">...</p>
+            
+            <div id="themeOptionsContainer">
+                <!-- Buttons will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sticky Header for Website Feel -->
+        <header>
+            <div class="logo-area">
+                <img src="https://i.postimg.cc/GtN7FqXW/nomic-logo.jpg" alt="Logo">
+                <h1>Nomic Studio</h1>
+            </div>
+            
+            <!-- Visitor Counter Display -->
+            <div class="visitor-badge">
+                <span>👁️</span> <span id="visitorCount">...</span>
+            </div>
+        </header>
+
+        <!-- STEP 0: WEBSITE LANDING (DASHBOARD) -->
+        <div id="step-landing" class="step-section active">
+            
+            <!-- 1. Banner Carousel -->
+            <div class="carousel-container" id="carouselContainer"></div>
+
+            <!-- 2. Ticker -->
+            <div class="ticker-wrap">
+                <div class="ticker" id="tickerDisplay">...</div>
+            </div>
+
+            <!-- Dashboard Grid Menu -->
+            <div class="dashboard-grid">
+                
+                <div class="dash-card" onclick="window.handleBookingClick()">
+                    <div class="card-icon">📅</div>
+                    <div class="card-title">Tempah Slot</div>
+                    <div class="card-desc">Pilih tarikh & masa untuk sesi fotografi anda.</div>
+                </div>
+
+                <div class="dash-card" onclick="window.goToStep('check-status')">
+                    <div class="card-icon">🔍</div>
+                    <div class="card-title">Semak Status</div>
+                    <div class="card-desc">Lihat butiran tempahan menggunakan No. Tel.</div>
+                </div>
+                
+                <div class="dash-card" onclick="window.goToStep('reviews')">
+                    <div class="card-icon">⭐</div>
+                    <div class="card-title">Review</div>
+                    <div class="card-desc">Lihat maklum balas pelanggan terdahulu.</div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="card-icon">⏰</div>
+                    <div class="card-title">Waktu Operasi</div>
+                    <div class="card-desc" id="operationHoursDisplay" style="margin-top: 5px;">...</div>
+                </div>
+
+                <div class="dash-card full-width" onclick="window.openLocation()">
+                    <div class="card-icon">📍</div>
+                    <div>
+                        <div class="card-title">Lokasi Studio</div>
+                        <div class="card-desc" id="locationDisplay">...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- NEW STEP: CUSTOMER REVIEWS -->
+        <div id="step-reviews" class="step-section">
+            <h2>Review Pelanggan</h2>
+            
+            <div class="rating-summary">
+                <div class="rating-big" id="avgRatingNum">0.0</div>
+                <div class="rating-stars" id="avgRatingStars">★★★★★</div>
+                <div style="font-size:0.8rem; color:#666;"><span id="totalReviewsCount">0</span> Ulasan</div>
+                <button class="btn-action btn-sm" style="margin-top:10px; width:auto;" onclick="window.toggleReviewForm()">+ Tulis Review</button>
+            </div>
+
+            <div id="reviewFormContainer" style="display:none; background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #eee;">
+                <h3 style="font-size:0.95rem; margin-bottom:10px; text-align:center;">Kongsi Pengalaman Anda</h3>
+                
+                <div class="star-input" id="starInputContainer">
+                    <span class="star-icon" data-val="1" onclick="window.setStarRating(1)">★</span>
+                    <span class="star-icon" data-val="2" onclick="window.setStarRating(2)">★</span>
+                    <span class="star-icon" data-val="3" onclick="window.setStarRating(3)">★</span>
+                    <span class="star-icon" data-val="4" onclick="window.setStarRating(4)">★</span>
+                    <span class="star-icon" data-val="5" onclick="window.setStarRating(5)">★</span>
+                </div>
+                <input type="hidden" id="reviewRating" value="0">
+
+                <input type="text" id="reviewName" placeholder="Nama Anda (cth: Ahmad)">
+                <textarea id="reviewComment" rows="3" placeholder="Komen anda..."></textarea>
+                
+                <button class="btn-action" onclick="window.submitReview()">Hantar Review</button>
+                <button class="btn-action btn-back" style="margin-top:5px;" onclick="window.toggleReviewForm()">Batal</button>
+            </div>
+
+            <div id="reviewsListContainer"></div>
+
+            <button class="btn-action btn-back" style="margin-top:20px;" onclick="window.goToStep('landing')">Kembali ke Utama</button>
+        </div>
+
+        <!-- NEW STEP: MEMO PENTING -->
+        <div id="step-memo" class="step-section">
+            <h2 style="color: #ef4444; border-bottom-color: #ef4444;">BACA DAHULU SEBELUM TEMPAH!</h2>
+            
+            <div class="memo-box" style="background: #f0f9ff; border-color: #bae6fd;">
+                <div class="memo-title" style="color: #0284c7;">📝 TERMA & SYARAT PAKEJ RAYA</div>
+                <div style="font-size:0.85rem; font-weight:bold; margin-bottom:10px; color:#0284c7;">RM150 | 15 Minit | Max 6 Pax</div>
+                <ul class="memo-list" style="padding-bottom:0;">
+                    <li><strong>1. Tempoh Sesi</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Durasi sesi adalah 15 minit sahaja.<br>• Pelanggan diminta hadir 10 minit lebih awal untuk elakkan kelewatan.</span>
+                    </li>
+                    <li><strong>2. Bilangan Individu</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Harga pakej meliputi maksimum 6 orang (6 tahun ke atas).<br>• Kanak-kanak di bawah 6 tahun – PERCUMA.<br>• Tambahan pax (6 tahun ke atas): RM10/pax.<br>• Max kapasiti disarankan 10-12 pax (dewasa)</span>
+                    </li>
+                    <li><strong>3. Waktu & Ketepatan Masa</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Lewat hadir akan mengurangkan masa sesi.<br>• Jika lewat lebih 10 minit, sesi dianggap batal & tiada refund.</span>
+                    </li>
+                    <li><strong>4. Bayaran</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Deposit RM50 diperlukan untuk block slot.<br>• Baki dibayar 2 hari sebelum sesi (tunai / online transfer).<br>• Deposit tidak dipulangkan jika batal secara tiba-tiba.</span>
+                    </li>
+                    <li><strong>5. Pembatalan / Tukar Slot</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Tukar tarikh dibenarkan sekali sahaja, minimum 3 hari (72 jam) sebelum sesi (Sila Whatsapp admin untuk pertukaran slot)<br>• Pembatalan last-minute / no-show: deposit hangus.</span>
+                    </li>
+                    <li><strong>6. Hasil Gambar</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Unlimited gambar sepanjang sesi.<br>• Siap dalam 24 jam (Google Drive).<br>• Gambar RAW/unedited tidak diberikan.</span>
+                    </li>
+                    <li><strong>7. Pakaian & Makeup</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Perlu siap sedia sebelum tiba.<br>• Pertukaran pakaian tidak termasuk dalam 15 minit sesi.<br>• Jika mahu tukar outfit → tambah slot baharu.</span>
+                    </li>
+                    <li><strong>8. Kanak-Kanak & Keselamatan</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Ibu bapa tanggungjawab jaga anak.<br>• Studio tidak tanggung kehilangan/kerosakan barang.</span>
+                    </li>
+                    <li><strong>9. Hak Cipta & Kegunaan Gambar</strong><br>
+                        <span style="font-size:0.8rem; color:#666; display:block; margin-top:2px;">• Studio berhak guna gambar untuk promosi (kecuali request private).<br>• Pelanggan bebas guna gambar untuk kegunaan peribadi.</span>
+                    </li>
+                    <li><strong> Nota : Pihak Pengurusan berhak untuk meminda terma dan syarat tanpa sebarang notis awal</strong><br>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="memo-box">
+                <div class="memo-title">💰 HARGA PAKEJ</div>
+                <ul class="memo-list" id="priceMemoList"></ul>
+            </div>
+            
+            <div class="memo-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div class="memo-title" style="color: #16a34a;">🎁 APA ANDA DAPAT?</div>
+                <ul class="memo-list">
+                    <li>15 Minit Sesi</li>
+                    <li>Max 6 Pax (Kanak-kanak &lt;6 tahun Percuma)</li>
+                    <li>Unlimited Shots</li>
+                    <li>Full Softcopy (Google Drive)</li>
+                    <li>Gambar siap dalam 24 jam</li>
+                    <li>Fasiliti yang baik</li>
+                    <li>Bilik Berhawa Dingin</li>
+                    <li>Surau dan tandas disediakan</li>
+                </ul>
+            </div>
+            <button class="btn-action" onclick="window.goToStep('calendar')">Saya Faham & Teruskan</button>
+            <button class="btn-action btn-back" onclick="window.goToStep('landing')">Kembali ke Utama</button>
+        </div>
+
+        <!-- STEP 1: CALENDAR -->
+        <div id="step-calendar" class="step-section">
+            <h2>Pilih Tarikh</h2>
+            <div class="calendar-header">
+                <button class="btn-nav" id="prevMonth">&lt;</button>
+                <h3 id="monthYearDisplay" style="font-weight:700;"></h3>
+                <button class="btn-nav" id="nextMonth">&gt;</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <button class="btn-action btn-back" onclick="window.goToStep('memo')">Kembali</button>
+        </div>
+
+        <!-- STEP 2: TIME SLOTS -->
+        <div id="step-slots" class="step-section">
+            <h2>Pilih Masa</h2>
+            <p style="margin-bottom: 20px; font-size: 0.9rem; color: #666;">Tarikh: <span id="selectedDateDisplay" style="font-weight:bold; color:black;"></span></p>
+            <div id="specialDateAlert" style="display:none; background:#fef08a; padding:10px; border-radius:8px; margin-bottom:15px; font-size:0.85rem; color:#854d0e; border:1px solid #facc15;">
+                ✨ Ini adalah <strong>Hari Special</strong>. Harga pakej mungkin berbeza.
+            </div>
+            <div class="slots-grid" id="slotsGrid"></div>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                <div id="selectionSummary" style="text-align: right; font-size: 0.9rem; margin-bottom: 10px; color: #666;">
+                    Sesi Dipilih: <strong>0</strong>
+                </div>
+                <button class="btn-action" id="btnConfirmSlots" onclick="window.proceedToForm()" disabled>Seterusnya &rsaquo;</button>
+            </div>
+            <button class="btn-action btn-back" onclick="window.goToStep('calendar')">Kembali ke Kalendar</button>
+        </div>
+
+        <!-- STEP 3: BOOKING FORM -->
+        <div id="step-form" class="step-section">
+            <h2>Butiran Anda</h2>
+            <div class="summary-box">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Tarikh</span><strong id="summaryDate"></strong></div>
+                <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #444;">
+                    <div style="font-size:0.8rem; color:#aaa; margin-bottom:5px;">Slot & Tema Dipilih:</div>
+                    <div id="summarySessionsList" style="font-size:0.9rem; font-weight:bold;"></div>
+                </div>
+                 <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Bil. Sesi</span><strong id="summaryCount"></strong></div>
+                <div id="summaryAddons" style="display:none; justify-content:space-between; margin-bottom:5px; color:#aaa; font-size:0.85rem;"><span>Add-ons</span><strong id="summaryAddonsText"></strong></div>
+                
+                <!-- Added Extra Pax Charge Display -->
+                <div id="summaryPaxSurcharge" style="display:none; justify-content:space-between; margin-bottom:5px; color:#aaa; font-size:0.85rem;">
+                    <span id="summaryPaxSurchargeText">Caj Tambahan Pax</span>
+                    <strong id="summaryPaxSurchargePrice">RM0</strong>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; border-top:1px solid #444; padding-top:5px; margin-top:5px;"><span>Jumlah Harga</span><strong id="summaryPrice" style="color: var(--brand-orange);">RM0.00</strong></div>
+            </div>
+            <form id="bookingForm">
+                <div style="background: white; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--brand-black);">Pilihan Tambahan (Add-on)</h3>
+                    <div id="addonsContainer"></div>
+                </div>
+                
+                <label>Bilangan Dewasa @ 6 Tahun Ke Atas (pax)</label>
+                <input type="number" id="adultPax" placeholder="Jumlah dewasa" min="1" value="1" required oninput="window.updateTotalCalc()">
+
+                <label>Bilangan Kanak-Kanak (&lt; 6 tahun)-(PERCUMA)</label>
+                <input type="number" id="childPax" placeholder="Jumlah kanak-kanak" min="0" value="0" oninput="window.updateTotalCalc()">
+
+                <label>Nama Penuh</label>
+                <input type="text" id="name" placeholder="cth: Ahmad Albab" required>
+                <label>No. Telefon (WhatsApp)</label>
+                <input type="tel" id="phone" placeholder="cth: 0123456789" required>
+                <div id="phoneError" class="error-msg" style="color:red; font-size:0.8rem; display:none;">No. telefon tidak sah.</div>
+                
+                <label>Alamat Emel (Optional)</label>
+                <input type="email" id="email" placeholder="nama@email.com">
+                <div id="emailError" class="error-msg" style="color:red; font-size:0.8rem; display:none;">Emel tidak sah.</div>
+                
+                <!-- Changed button to proceed to payment -->
+                <button type="submit" class="btn-action">Teruskan ke Pembayaran &rsaquo;</button>
+                <button type="button" class="btn-action btn-back" onclick="window.goToStep('slots')">Ubah Masa</button>
+            </form>
+        </div>
+
+        <!-- NEW STEP: PAYMENT (WAJIB) -->
+        <div id="step-payment" class="step-section">
+            <h2>Pembayaran Deposit</h2>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Sila buat bayaran deposit untuk sahkan tempahan.</p>
+                <div style="font-weight: bold; font-size: 1.1rem; color: var(--brand-orange);">Deposit Diperlukan: RM50.00</div>
+            </div>
+
+            <div class="payment-card">
+                <img src="https://i.postimg.cc/XvqHH92M/image.png" alt="QR Code" class="qr-code">
+                
+                <div class="bank-details">
+                    <div style="font-weight: bold; margin-bottom: 5px;">CIMB Bank</div>
+                    <div style="font-size: 0.9rem; margin-bottom: 5px;">Aligue Sports Industry</div>
+                    <div onclick="window.copyAccount()" class="account-number" title="Klik untuk salin">
+                        8605016118
+                    </div>
+                    <span class="copy-tooltip">(Klik nombor untuk salin)</span>
+                </div>
+            </div>
+
+            <div class="file-upload-wrapper">
+                <label class="file-upload-label">Muat Naik Resit (Wajib)</label>
+                <input type="file" id="receiptUpload" class="custom-file-input" accept="image/*,application/pdf" required>
+                <p style="font-size: 0.75rem; color: #999; margin-top: 5px;">Format: Gambar (JPG/PNG) atau PDF.</p>
+            </div>
+
+            <button class="btn-action" onclick="window.submitBooking()">Sahkan Tempahan & Hantar</button>
+            <button class="btn-action btn-back" onclick="window.goToStep('form')">Kembali</button>
+        </div>
+
+        <!-- STEP 4: SUCCESS -->
+        <div id="step-success" class="step-section">
+            <div style="text-align:center; padding: 40px 10px;">
+                <div style="font-size: 4rem; margin-bottom: 10px;">✅</div>
+                <h2 style="border:none; margin-bottom:5px;">Tempahan Berjaya!</h2>
+                <p style="color: #666; font-size: 0.9rem;">Terima kasih memilih Nomic Studio.</p>
+                <div style="background:#f0f0f0; padding:15px; margin:20px 0; border-radius:8px;">
+                    <p style="font-size: 0.75rem; text-transform:uppercase; color:#888;">ID Rujukan Anda</p>
+                    <span id="bookingRef" style="font-family:monospace; font-size:1.5rem; font-weight:bold; color:var(--brand-orange); letter-spacing:2px;">...</span>
+                </div>
+                
+                <!-- Added Manual WhatsApp Button -->
+                <div id="manualWaContainer" style="margin-bottom:20px;">
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom:10px;">Sila hantar butiran ke WhatsApp untuk semakan admin.</p>
+                    <a id="manualWaLink" href="#" target="_blank" class="btn-action btn-success" style="display:block; text-decoration:none; padding:15px; border-radius:12px;">Hantar WhatsApp Sekarang</a>
+                </div>
+
+                <button class="btn-action btn-back" onclick="window.goToStep('landing')">Kembali ke Utama</button>
+            </div>
+        </div>
+
+        <!-- STEP: CHECK STATUS -->
+        <div id="step-check-status" class="step-section">
+            <h2>Semakan Status</h2>
+            <p style="font-size:0.9rem; margin-bottom:20px; color:#666;">Masukkan No. Telefon untuk semak tempahan.</p>
+            <label>No. Telefon</label>
+            <input type="tel" id="checkPhone" placeholder="cth: 0123456789">
+            <button class="btn-action" onclick="window.checkStatus()">Cari Rekod</button>
+            <div id="statusResult"></div>
+            <button class="btn-action btn-back" onclick="window.goToStep('landing')">Kembali ke Utama</button>
+        </div>
+
+        <!-- STEP: ADMIN LOGIN -->
+        <div id="step-admin-login" class="step-section">
+            <h2>Admin Login</h2>
+            <form onsubmit="window.handleAdminLogin(event)">
+                <label>Email Admin</label>
+                <input type="email" id="adminId" required placeholder="admin@email.com">
+                <label>Password</label>
+                <input type="password" id="adminPw" required>
+                <button type="submit" class="btn-action">Login dengan Firebase</button>
+                <button type="button" class="btn-action btn-back" onclick="window.goToStep('landing')">Batal</button>
+            </form>
+        </div>
+
+        <!-- STEP: ADMIN DASHBOARD -->
+        <div id="step-admin-dashboard" class="step-section">
+            <h2>Admin Settings</h2>
+            
+            <button class="btn-action" style="margin-bottom:20px; background:#222;" onclick="window.goToStep('admin-database')">📂 Database Pelanggan</button>
+
+            <div class="admin-section-box">
+                <div class="admin-section-title">a) Banner Carousel</div>
+                <div id="adminBannerList"></div>
+                <div class="item-row">
+                    <input type="text" id="newBannerUrl" placeholder="Image URL">
+                    <button class="btn-action btn-sm" onclick="window.addBanner()">Tambah</button>
+                </div>
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">b) Ticker Pengumuman</div>
+                <textarea id="adminTickerText" rows="2"></textarea>
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">c) Waktu Operasi</div>
+                <label>Pagi</label>
+                <input type="text" id="adminHoursMorning">
+                <label>Petang</label>
+                <input type="text" id="adminHoursEvening">
+                <label>Malam</label>
+                <input type="text" id="adminHoursNight">
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">d) Lokasi Studio</div>
+                <label>Alamat Penuh</label>
+                <textarea id="adminAddress" rows="3"></textarea>
+                <label>Google Maps URL</label>
+                <input type="text" id="adminMapUrl">
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">e) Hari Special</div>
+                <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">Format: YYYY-MM-DD, asingkan dengan koma.</p>
+                <textarea id="adminSpecialDates" rows="3"></textarea>
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">f) Harga & Add-on</div>
+                <label>Harga Normal (RM)</label>
+                <input type="number" id="adminPriceNormal">
+                <label>Harga Special (RM)</label>
+                <input type="number" id="adminPriceSpecial">
+                <div style="border-top:1px solid #ddd; margin:15px 0; padding-top:10px;">
+                    <strong>Add-ons Item</strong>
+                    <div id="adminAddonList" style="margin-top:10px;"></div>
+                    <div class="item-row">
+                        <input type="text" id="newAddonName" placeholder="Nama Item" style="flex:2;">
+                        <input type="number" id="newAddonPrice" placeholder="Harga" style="flex:1;">
+                        <button class="btn-action btn-sm" onclick="window.addAddon()">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">g) Kawalan Tempahan</div>
+                
+                <div style="background:#fff; border:1px solid #eee; padding:10px; border-radius:8px; margin-bottom:15px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:normal; margin:0;">
+                        <input type="checkbox" id="adminBookingActive" style="width:20px; height:20px; margin:0;">
+                        <span style="font-weight:bold;">Buka Sistem Tempahan (Global)</span>
+                    </label>
+                </div>
+
+                <label>Tarikh Tutup Penuh / Cuti (YYYY-MM-DD)</label>
+                <textarea id="adminDisabledDates" rows="3" placeholder="Contoh: 2026-02-13, 2026-02-14"></textarea>
+
+                <div style="border-top:1px solid #ddd; margin-top:20px; padding-top:15px;">
+                    <div style="font-weight:bold; margin-bottom:5px; color:var(--brand-orange);">Tutup Slot Spesifik (Tarikh & Masa)</div>
+                    <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">Pilih tarikh dan masa untuk ditutup secara manual (cth: rehat, maintenance).</p>
+                    
+                    <div class="item-row" style="align-items: flex-end;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.75rem; margin-bottom:2px;">Tarikh</label>
+                            <input type="date" id="adminCloseDate" style="margin-bottom:0;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.75rem; margin-bottom:2px;">Masa</label>
+                            <select id="adminCloseTime" style="margin-bottom:0; padding:12px; border-radius:8px; border:1px solid #ddd; width:100%; bg:white;">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-action btn-sm btn-danger" style="width:100%; margin-top:5px;" onclick="window.addDisabledSlot()">Tutup Slot Ini</button>
+                    
+                    <div style="margin-top:15px; font-weight:600; font-size:0.85rem;">Senarai Slot Ditutup:</div>
+                    <div id="adminDisabledSlotsList" style="max-height: 150px; overflow-y: auto; background:white; border:1px solid #eee; border-radius:8px; padding:10px; margin-top:5px;"></div>
+                </div>
+            </div>
+            <div class="admin-section-box">
+                <div class="admin-section-title">h) Pengurusan Review</div>
+                <div id="adminReviewListContainer" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <button class="btn-action" onclick="window.saveAdminSettings()">Simpan Perubahan</button>
+            <button class="btn-action btn-back" onclick="window.logoutAdmin()">Keluar Admin</button>
+        </div>
+
+        <!-- NEW STEP: ADMIN DATABASE -->
+        <div id="step-admin-database" class="step-section">
+            <h2>Database Pelanggan</h2>
+            
+            <!-- Controls & Filters -->
+            <div style="background:#fff; padding:15px; border-radius:8px; border:1px solid #ddd; margin-bottom:20px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                    <button class="btn-action btn-sm" id="btnViewDaily" style="width:auto; margin:0; background:var(--brand-black);" onclick="window.switchDbView('daily')">Pandangan Harian</button>
+                    <button class="btn-action btn-sm" id="btnViewFull" style="width:auto; margin:0; background:#999;" onclick="window.switchDbView('full')">Senarai Penuh (Table)</button>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                    <!-- Date Filter (Visible in Daily View) -->
+                    <div id="filterDateGroup">
+                        <label style="font-size:0.8rem;">Tarikh:</label>
+                        <input type="date" id="adminDbDate" style="margin:0; padding:8px;" onchange="window.loadAdminDatabase()">
+                    </div>
+
+                    <!-- Status Filter (For Both Views) -->
+                    <div>
+                        <label style="font-size:0.8rem;">Filter Status:</label>
+                        <select id="adminDbStatusFilter" style="margin:0; padding:8px; width:100%; border:1px solid #ddd; border-radius:4px;" onchange="window.filterDbDisplay()">
+                            <option value="ALL">SEMUA</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="DEPOSIT">DEPOSIT</option>
+                            <option value="SELESAI">SELESAI</option>
+                            <option value="CANCEL">CANCEL</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn-action btn-sm" style="width:auto; margin:0;" onclick="window.loadAdminDatabase()">Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- Daily View Container (Cards) -->
+            <div id="adminDbDailyContainer">
+                <div style="text-align:center; padding:20px; color:#666;">Sila pilih tarikh...</div>
+            </div>
+
+            <!-- Full Table Container -->
+            <div id="adminDbTableContainer" style="display:none; overflow-x:auto;">
+                <!-- UPDATE: Added Download Excel Button -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <p style="font-size:0.8rem; color:#666; margin:0;">* Senarai penuh tempahan.</p>
+                    <button class="btn-action btn-sm" style="width:auto; background:#16a34a; margin:0;" onclick="window.downloadExcel()">Muat Turun Excel (CSV)</button>
+                </div>
+
+                <table style="width:100%; border-collapse:collapse; background:white; font-size:0.85rem;">
+                    <thead>
+                        <tr style="background:#f3f4f6; text-align:left;">
+                            <th style="padding:10px; border:1px solid #eee;">Ref</th>
+                            <th style="padding:10px; border:1px solid #eee;">Tarikh</th>
+                            <th style="padding:10px; border:1px solid #eee;">Nama</th>
+                            <th style="padding:10px; border:1px solid #eee;">Pax</th>
+                            <th style="padding:10px; border:1px solid #eee;">No. Tel</th>
+                            <th style="padding:10px; border:1px solid #eee;">Masa / Tema</th>
+                            <th style="padding:10px; border:1px solid #eee;">Harga (RM)</th>
+                            <th style="padding:10px; border:1px solid #eee;">Status</th>
+                            <th style="padding:10px; border:1px solid #eee;">Resit</th>
+                            <th style="padding:10px; border:1px solid #eee;">Tindakan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminDbTableBody"></tbody>
+                </table>
+            </div>
+
+            <button class="btn-action btn-back" style="margin-top:20px;" onclick="window.goToStep('admin-dashboard')">Kembali</button>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            &copy; All Right Reserved by Nomic Production 2026 
+            <span id="adminAuthIcon" class="admin-icon" onclick="window.handleAdminIconClick()" title="Admin Access">🔒</span>
+        </div>
+    </div>
+
+    <!-- Floating WhatsApp -->
+    <div id="floatingWa" class="float-wa" title="WhatsApp Kami">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-3.104-5.373-1.35-12.28 4.024-15.384 5.374-3.104 12.28-1.35 15.384 4.024 3.104 5.373 1.35 12.28-4.024 15.384-2.527 1.458-5.393 1.76-8.083.896l-9.988 1.243zm4.569-15.558c.706-.692 1.579-1.026 2.453-1.026.97 0 1.939.413 2.628 1.237l1.096 1.312c.594.71.517 1.769-.17 2.456l-1.034 1.034c-.187.187-.236.467-.123.708.97 2.066 2.375 3.471 4.441 4.441.241.113.521.064.708-.123l1.034-1.034c.687-.687 1.747-.764 2.456-.17l1.312 1.096c1.381 1.154 1.551 3.23.38 4.636l-1.034 1.034c-1.31 1.31-3.611 1.472-5.467.385-3.328-1.95-5.941-4.563-7.891-7.891-1.087-1.856-.925-4.157.385-5.467l1.034-1.034z"/></svg>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" class="toast-overlay"></div>
+
+    <!-- FIREBASE MODULE & APP LOGIC -->
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, query, where, getDocs, deleteDoc, onSnapshot, orderBy, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLFtvde_YYOjTUj0zZTC6v4bB23hhHrAQ",
+            authDomain: "nomic-studio.firebaseapp.com",
+            projectId: "nomic-studio",
+            storageBucket: "nomic-studio.firebasestorage.app",
+            messagingSenderId: "15833168077",
+            appId: "1:15833168077:web:766f38562280afdcd55184"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const APP_ID = "nomic-studio"; // Project ID context
+        const DATA_PATH = `artifacts/${APP_ID}/public/data`;
+
+        // STATE
+        let appConfig = {};
+        let appReviews = [];
+        let currentDate = new Date(); // Malaysia Time handled in init
+        let selectedDate = null;
+        
+        // NEW STATE FOR THEME & SLOTS
+        let selectedSessions = []; // Array of { time: "09:00 AM", theme: "Klasik Glam Raya" }
+        let bookedMap = {}; // Key: TimeString, Value: Array of taken themes ["Klasik", "Modernista"]
+        
+        let baseSessionPrice = 0;
+        let slideIndex = 0;
+        let slideInterval;
+        let slides = [];
+        let isAdminUser = false; // State to track admin status
+        
+        // Admin DB State
+        let dbUnsubscribe = null;
+        let dbDataCache = []; // Store fetched data locally for filtering
+        let currentDbView = 'daily'; // 'daily' or 'full'
+        let visitorUnsubscribe = null; // Track visitor listener to prevent duplicates
+
+        // THEME DEFINITIONS
+        const THEMES = [
+            { id: 'klasik', label: 'Klasik Glam Raya' },
+            { id: 'modern', label: 'Modernista Raya' }
+        ];
+
+        // DEFAULT CONFIG (Fallback)
+        const defaultConfig = {
+            banners: [
+                'https://media2.fishtank.my/media/hitz/assets/articles/may-2018/black-panther-cast.jpg'
+            ],
+            ticker: "Selamat Datang ke Nomic Studio!",
+            hours: { morning: "09:00 - 12:00", evening: "14:00 - 18:00", night: "20:00 - 22:00" },
+            location: { address: "Kuala Lumpur", mapUrl: "https://maps.google.com" },
+            prices: { normal: 150, special: 350 }, // Updated default price to match text
+            specialDates: [],
+            addons: [{name: "Frame", price: 30}],
+            bookingActive: true,
+            disabledDates: [],
+            disabledSpecificSlots: [] // NEW: Array for specific closed slots
+        };
+
+        // --- INIT ---
+        async function initApp() {
+            try {
+                // Auth State Listener
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        console.log("Auth State: User logged in as", user.email || "Anonymous");
+                        
+                        // Initialize Visitor Counter ONLY after user is authenticated
+                        initVisitorCounter(); 
+                        
+                        // Check if current user is the specific admin email
+                        if (user.email === 'nomicstudio01@gmail.com') {
+                            isAdminUser = true;
+                            window.updateAdminUIState(true);
+                            // If we are on login page, redirect to dashboard automatically
+                            const loginSection = document.getElementById('step-admin-login');
+                            if (loginSection.classList.contains('active')) {
+                                window.proceedToAdmin();
+                            }
+                        } else {
+                            isAdminUser = false;
+                            window.updateAdminUIState(false);
+                        }
+                    } else {
+                        // No user, sign in anonymously by default
+                        console.log("Auth State: No user, signing in anonymously...");
+                        signInAnonymously(auth);
+                    }
+                });
+
+                // Config Listener
+                const configRef = doc(db, DATA_PATH, "settings", "config");
+                onSnapshot(configRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        appConfig = { ...defaultConfig, ...docSnap.data() };
+                    } else {
+                        appConfig = defaultConfig;
+                        setDoc(configRef, defaultConfig); 
+                    }
+                    renderAppUI();
+                    document.getElementById('loading-overlay').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 300);
+                });
+
+                // Reviews Listener
+                const reviewRef = collection(db, DATA_PATH, "reviews");
+                onSnapshot(reviewRef, (snapshot) => {
+                    appReviews = [];
+                    snapshot.forEach(doc => {
+                        appReviews.push({ id: doc.id, ...doc.data() });
+                    });
+                    appReviews.sort((a, b) => new Date(b.date) - new Date(a.date) || b.timestamp - a.timestamp);
+                    renderReviews();
+                });
+
+                // Adjust current date to MY time
+                const myT = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
+                currentDate = new Date(myT);
+                window.renderCalendar(currentDate);
+                
+                // Set default date for admin DB filter
+                const isoDate = currentDate.toISOString().split('T')[0];
+                document.getElementById('adminDbDate').value = isoDate;
+
+            } catch (error) {
+                console.error("Init Error:", error);
+                window.showToast("Ralat sambungan server.");
+                document.getElementById('loading-overlay').style.display = 'none'; 
+            }
+        }
+
+        // --- VISITOR COUNTER FUNCTION ---
+        function initVisitorCounter() {
+            // Path: artifacts/nomic-studio/public/data/visitors/global
+            const visitorRef = doc(db, DATA_PATH, "visitors", "global");
+
+            // Avoid setting up duplicate listeners if auth state changes multiple times
+            if (visitorUnsubscribe) return;
+
+            // Real-time Listener to update the badge
+            visitorUnsubscribe = onSnapshot(visitorRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('visitorCount').innerText = data.count || 0;
+                } else {
+                    document.getElementById('visitorCount').innerText = 0;
+                }
+            }, (error) => {
+                // Silently ignore permission errors for visitors to avoid console spam
+                console.warn("Visitor counter access denied or unavailable.");
+            });
+
+            // Increment Logic (Session Based to prevent refresh spam)
+            const hasVisited = sessionStorage.getItem('nomic_visitor_logged');
+            
+            if (!hasVisited) {
+                // Atomically increment the count by 1. 
+                setDoc(visitorRef, { count: increment(1) }, { merge: true })
+                    .then(() => {
+                        console.log("Visitor count incremented.");
+                        sessionStorage.setItem('nomic_visitor_logged', 'true');
+                    })
+                    .catch((err) => {
+                        // Silently fail if permissions prevent writing
+                        // This is common in secured public apps where public write is disabled
+                        console.log("Visitor write skipped (permissions).");
+                    });
+            }
+        }
+
+        // --- GLOBAL FUNCTIONS ---
+        
+        // Update Footer UI based on Admin Status
+        window.updateAdminUIState = function(isAdmin) {
+            const icon = document.getElementById('adminAuthIcon');
+            if (isAdmin) {
+                icon.innerHTML = '🔓 Admin Dashboard';
+                icon.classList.add('admin-active');
+                icon.title = "Go to Dashboard";
+            } else {
+                icon.innerHTML = '🔒';
+                icon.classList.remove('admin-active');
+                icon.title = "Admin Login";
+            }
+        };
+
+        // Handle Footer Icon Click
+        window.handleAdminIconClick = function() {
+            if (isAdminUser) {
+                window.proceedToAdmin();
+            } else {
+                window.goToStep('admin-login');
+            }
+        };
+
+        window.showToast = function(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.innerHTML = `<span>🔔</span> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px) scale(0.9)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        window.goToStep = function(stepName) {
+            // Clean up admin listener if leaving database page
+            if (stepName !== 'admin-database' && dbUnsubscribe) {
+                dbUnsubscribe();
+                dbUnsubscribe = null;
+            }
+
+            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${stepName}`).classList.add('active');
+            window.scrollTo(0,0);
+            
+            if(stepName === 'admin-database') {
+                window.switchDbView('daily');
+            }
+        };
+
+        window.handleBookingClick = function() {
+            if (!appConfig.bookingActive) {
+                window.showToast("Maaf, tempahan slot ditutup buat masa ini.");
+                return;
+            }
+            window.goToStep('memo');
+        };
+
+        window.openLocation = function() {
+            window.open(appConfig.location.mapUrl, '_blank');
+        };
+
+        // --- RENDER UI ---
+        function renderAppUI() {
+            const carouselContainer = document.getElementById('carouselContainer');
+            let slidesHtml = '';
+            (appConfig.banners || []).forEach((url, index) => {
+                slidesHtml += `<div class="carousel-slide ${index === 0 ? 'active' : ''}" style="background-image: url('${url}');"></div>`;
+            });
+            slidesHtml += `<button class="carousel-btn prev" onclick="window.moveSlide(-1)">&#10094;</button>`;
+            slidesHtml += `<button class="carousel-btn next" onclick="window.moveSlide(1)">&#10095;</button>`;
+            carouselContainer.innerHTML = slidesHtml;
+            slides = document.querySelectorAll('.carousel-slide');
+            slideIndex = 0;
+            window.startSlideTimer();
+
+            document.getElementById('tickerDisplay').innerText = appConfig.ticker || "";
+            document.getElementById('operationHoursDisplay').innerHTML = `
+                <strong>Pagi:</strong> ${appConfig.hours?.morning || "TBA"}<br>
+                <strong>Petang:</strong> ${appConfig.hours?.evening || "TBA"}<br>
+                <strong>Malam:</strong> ${appConfig.hours?.night || "TBA"}<br>
+                <span style="color:var(--brand-orange); font-size:0.7rem;">*Dibuka Setiap Hari</span>
+            `;
+            document.getElementById('locationDisplay').innerHTML = `
+                ${(appConfig.location?.address || "Alamat belum ditetapkan").replace(/\n/g, '<br>')}<br>
+                <span style="text-decoration: underline; color: blue;">Buka di Google Maps</span>
+            `;
+            document.getElementById('priceMemoList').innerHTML = `
+                <li><strong>Hari Biasa:</strong> RM${appConfig.prices?.normal || 0}</li>
+                <li><strong>Hari Special:</strong> RM${appConfig.prices?.special || 0}</li>
+            `;
+
+            const addonContainer = document.getElementById('addonsContainer');
+            addonContainer.innerHTML = '';
+            (appConfig.addons || []).forEach((addon, index) => {
+                const div = document.createElement('label');
+                div.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; font-weight: normal;";
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center;">
+                        <input type="checkbox" id="addon-${index}" data-name="${addon.name}" data-price="${addon.price}" onchange="window.updateTotalCalc()" style="width: 18px; height: 18px; margin-bottom: 0; margin-right: 10px; accent-color: var(--brand-orange);">
+                        <span>${addon.name}</span>
+                    </div>
+                    <strong style="color: #666;">+RM${addon.price}</strong>
+                `;
+                addonContainer.appendChild(div);
+            });
+        }
+
+        // --- CAROUSEL ---
+        window.showSlides = function(index) {
+            if (!slides.length) return;
+            if (index >= slides.length) slideIndex = 0;
+            if (index < 0) slideIndex = slides.length - 1;
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[slideIndex].classList.add('active');
+        };
+
+        window.moveSlide = function(n) {
+            clearInterval(slideInterval);
+            slideIndex += n;
+            window.showSlides(slideIndex);
+            window.startSlideTimer();
+        };
+
+        window.startSlideTimer = function() {
+            clearInterval(slideInterval);
+            slideInterval = setInterval(() => {
+                slideIndex++;
+                window.showSlides(slideIndex);
+            }, 4000);
+        };
+
+        // --- CALENDAR ---
+        window.renderCalendar = function(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+            
+            document.getElementById('monthYearDisplay').innerText = `${monthNames[month]} ${year}`;
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            ['Ahad', 'Isnin', 'Sel', 'Rabu', 'Kha', 'Jum', 'Sab'].forEach(day => {
+                const div = document.createElement('div');
+                div.className = 'day-name';
+                div.innerText = day;
+                calendarGrid.appendChild(div);
+            });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayMY = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
+            const todayDate = new Date(todayMY);
+            const todayStr = `${todayDate.getFullYear()}-${(todayDate.getMonth()+1).toString().padStart(2,'0')}-${todayDate.getDate().toString().padStart(2,'0')}`;
+
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div');
+                div.className = 'day-cell empty';
+                calendarGrid.appendChild(div);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const div = document.createElement('div');
+                div.className = 'day-cell';
+                div.innerText = i;
+                
+                const monthStr = (month + 1).toString().padStart(2, '0');
+                const dayStr = i.toString().padStart(2, '0');
+                const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+                if (appConfig.disabledDates && appConfig.disabledDates.includes(dateStr)) {
+                    div.classList.add('disabled-date');
+                    div.onclick = () => window.showToast("Tarikh ini tidak dibuka.");
+                } else {
+                    div.onclick = () => window.handleDateClick(dateStr);
+                }
+                
+                if (selectedDate === dateStr) div.classList.add('selected');
+                else if (dateStr === todayStr) div.classList.add('today');
+
+                if (appConfig.specialDates && appConfig.specialDates.includes(dateStr) && !div.classList.contains('disabled-date')) {
+                    div.classList.add('special-date');
+                }
+                calendarGrid.appendChild(div);
+            }
+        };
+
+        document.getElementById('prevMonth').onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); window.renderCalendar(currentDate); };
+        document.getElementById('nextMonth').onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); window.renderCalendar(currentDate); };
+
+        window.handleDateClick = async function(dateStr) {
+            selectedDate = dateStr;
+            selectedSessions = []; 
+            const parts = dateStr.split('-');
+            document.getElementById('selectedDateDisplay').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            
+            const isSpecial = appConfig.specialDates.includes(dateStr);
+            const alertBox = document.getElementById('specialDateAlert');
+            alertBox.style.display = isSpecial ? 'block' : 'none';
+            if(isSpecial) alertBox.innerHTML = `✨ Ini adalah <strong>Hari Special</strong>. Harga: RM${appConfig.prices.special}/sesi.`;
+
+            window.renderCalendar(currentDate);
+            
+            const slotsGrid = document.getElementById('slotsGrid');
+            slotsGrid.innerHTML = '<div style="grid-column:span 3; text-align:center; padding:20px;">Memeriksa kekosongan...</div>';
+            
+            try {
+                // Fetch ALL bookings for this date to determine slot + theme availability
+                const q = query(collection(db, DATA_PATH, "bookings"), where("date", "==", dateStr));
+                const querySnapshot = await getDocs(q);
+                
+                // Reset bookedMap
+                bookedMap = {};
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Check if the booking is active
+                    if (data.status !== "CANCEL") {
+                        // Handle legacy data (simple string) or new data (could be simple string 'time')
+                        const timeStr = data.time || "";
+                        const times = timeStr.split(', ').filter(t => t);
+                        
+                        if (data.booked_slots && Array.isArray(data.booked_slots)) {
+                            data.booked_slots.forEach(slot => {
+                                if (!bookedMap[slot.time]) bookedMap[slot.time] = [];
+                                bookedMap[slot.time].push(slot.theme);
+                            });
+                        } else {
+                            // Legacy fallback
+                            times.forEach(t => {
+                                if (!bookedMap[t]) bookedMap[t] = [];
+                                bookedMap[t].push("Klasik Glam Raya"); 
+                            });
+                        }
+                    }
+                });
+                
+                window.renderSlots();
+            } catch (e) {
+                console.error(e);
+                slotsGrid.innerHTML = '<div style="color:red; grid-column:span 3; text-align:center;">Gagal memuatkan data.</div>';
+            }
+
+            window.goToStep('slots');
+            window.updateSelectionUI(); 
+        };
+
+        // DEFINISI SESI MASA
+        const timeSessions = [
+            {
+                label: "☀️ Morning Session (9AM - 1:40PM)",
+                slots: ["09:00 AM", "09:20 AM", "09:40 AM", "10:00 AM", "10:20 AM", "10:40 AM", "11:00 AM", "11:20 AM", "11:40 AM", "12:00 PM", "12:20 PM", "12:40 PM", "01:00 PM", "01:20 PM", "01:40 PM"]
+            },
+            {
+                label: "🌤️ Afternoon Session (2PM - 6:40PM)",
+                slots: ["02:00 PM", "02:20 PM", "02:40 PM", "03:00 PM", "03:20 PM", "03:40 PM", "04:00 PM", "04:20 PM", "04:40 PM", "05:00 PM", "05:20 PM", "05:40 PM", "06:00 PM", "06:20 PM", "06:40 PM"]
+            },
+            {
+                label: "🌙 Night Session (7PM - 1AM)",
+                slots: ["07:00 PM", "07:20 PM", "07:40 PM", "08:00 PM", "08:20 PM", "08:40 PM", "09:00 PM", "09:20 PM", "09:40 PM", "10:00 PM", "10:20 PM", "10:40 PM", "11:00 PM", "11:20 PM", "11:40 PM", "12:00 AM", "12:20 AM", "12:40 AM", "01:00 AM"]
+            }
+        ];
+
+        // Flatten array untuk tujuan sorting logic
+        const allTimeSlots = timeSessions.flatMap(session => session.slots);
+
+        window.renderSlots = function() {
+            const slotsGrid = document.getElementById('slotsGrid');
+            slotsGrid.innerHTML = '';
+            
+            timeSessions.forEach(session => {
+                // Header Sesi
+                const header = document.createElement('div');
+                header.className = 'slot-section-header';
+                header.innerText = session.label;
+                slotsGrid.appendChild(header);
+
+                // Slot Buttons
+                session.slots.forEach(time => {
+                    const btn = document.createElement('button');
+                    btn.className = 'slot-btn';
+                    
+                    // Check availability
+                    const takenThemes = bookedMap[time] || [];
+                    const isFullyBooked = takenThemes.length >= THEMES.length; // If all themes taken
+                    
+                    // Check if selected by user
+                    const userSelection = selectedSessions.find(s => s.time === time);
+                    
+                    // Check if manually disabled by admin
+                    // Key format must match what's stored: YYYY-MM-DD|hh:mm A
+                    const slotKey = `${selectedDate}|${time}`;
+                    const isManuallyClosed = (appConfig.disabledSpecificSlots || []).includes(slotKey);
+
+                    let btnText = time;
+                    if (userSelection) {
+                        btn.classList.add('selected-slot');
+                        // Show badge for theme
+                        const badge = document.createElement('span');
+                        badge.className = 'slot-badge';
+                        // Shorten theme name for badge
+                        badge.innerText = userSelection.theme.includes('Klasik') ? 'Klasik' : 'Modern';
+                        btn.appendChild(badge);
+                    }
+
+                    if (isManuallyClosed) {
+                        btn.classList.add('disabled');
+                        btn.innerHTML = `${time} <br><span style='font-size:0.7rem; color:red; font-weight:bold;'>(Tutup Manual)</span>`;
+                        btn.disabled = true;
+                    } else if (isFullyBooked) {
+                        btn.classList.add('disabled');
+                        btn.innerHTML = `${time} <br><span style='font-size:0.7rem'>(Penuh)</span>`;
+                        btn.disabled = true;
+                    } else if (takenThemes.length > 0) {
+                        // Partially booked
+                        btn.innerHTML = `${time} <br><span style='font-size:0.7rem; color:#f97316;'>(${THEMES.length - takenThemes.length} left)</span>`;
+                        // Re-add badge if selected
+                        if (userSelection) {
+                             const badge = document.createElement('span');
+                             badge.className = 'slot-badge';
+                             badge.innerText = userSelection.theme.includes('Klasik') ? 'Klasik' : 'Modern';
+                             btn.appendChild(badge);
+                        }
+                    } else {
+                        btn.innerText = time;
+                        if (userSelection) {
+                             const badge = document.createElement('span');
+                             badge.className = 'slot-badge';
+                             badge.innerText = userSelection.theme.includes('Klasik') ? 'Klasik' : 'Modern';
+                             btn.appendChild(badge);
+                        }
+                    }
+
+                    if (!isFullyBooked && !isManuallyClosed) {
+                        btn.onclick = () => window.openThemeModal(time);
+                    }
+                    
+                    slotsGrid.appendChild(btn);
+                });
+            });
+        };
+
+        // --- THEME MODAL LOGIC ---
+        let currentModalTime = null;
+
+        window.openThemeModal = function(time) {
+            currentModalTime = time;
+            document.getElementById('themeModalTime').innerText = `Masa: ${time}`;
+            const container = document.getElementById('themeOptionsContainer');
+            container.innerHTML = '';
+
+            const takenThemes = bookedMap[time] || [];
+            
+            // Check if user already picked a theme for this time (to allow unselecting/changing)
+            const existingSelection = selectedSessions.find(s => s.time === time);
+
+            THEMES.forEach(theme => {
+                const btn = document.createElement('button');
+                btn.className = 'theme-btn';
+                
+                // If this specific theme is taken by someone else
+                const isTaken = takenThemes.includes(theme.label);
+                
+                // If currently selected by user
+                const isSelected = existingSelection && existingSelection.theme === theme.label;
+
+                if (isTaken) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<strong>${theme.label}</strong><small>Tidak Available (Penuh)</small>`;
+                } else {
+                    btn.innerHTML = `<strong>${theme.label}</strong><small>${isSelected ? '✔ Sedang Dipilih' : 'Available'}</small>`;
+                    if (isSelected) {
+                        btn.style.borderColor = 'var(--brand-orange)';
+                        btn.style.backgroundColor = '#fff7ed';
+                    }
+                    
+                    btn.onclick = () => {
+                        // Remove existing selection for this time first (replace behavior)
+                        selectedSessions = selectedSessions.filter(s => s.time !== time);
+                        
+                        // Add new selection
+                        selectedSessions.push({ time: time, theme: theme.label });
+                        
+                        // Sort selections by time
+                        selectedSessions.sort((a, b) => allTimeSlots.indexOf(a.time) - allTimeSlots.indexOf(b.time));
+                        
+                        window.closeThemeModal();
+                        window.renderSlots();
+                        window.updateSelectionUI();
+                    };
+                }
+                container.appendChild(btn);
+            });
+
+            // Add "Remove Selection" button if user has already selected this slot
+            if (existingSelection) {
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-action btn-danger btn-sm';
+                removeBtn.style.marginTop = '10px';
+                removeBtn.innerText = 'Batalkan Slot Ini';
+                removeBtn.onclick = () => {
+                    selectedSessions = selectedSessions.filter(s => s.time !== time);
+                    window.closeThemeModal();
+                    window.renderSlots();
+                    window.updateSelectionUI();
+                };
+                container.appendChild(removeBtn);
+            }
+
+            document.getElementById('themeModal').style.display = 'block';
+        };
+
+        window.closeThemeModal = function() {
+            document.getElementById('themeModal').style.display = 'none';
+        };
+
+        window.updateSelectionUI = function() {
+            const count = selectedSessions.length;
+            document.getElementById('selectionSummary').innerHTML = `Sesi Dipilih: <strong>${count}</strong>`;
+            document.getElementById('btnConfirmSlots').disabled = (count === 0);
+        };
+
+        window.proceedToForm = function() {
+            if (selectedSessions.length === 0) return;
+            const isSpecial = appConfig.specialDates.includes(selectedDate);
+            const pricePerSession = isSpecial ? appConfig.prices.special : appConfig.prices.normal;
+            baseSessionPrice = selectedSessions.length * pricePerSession;
+
+            document.getElementById('summaryDate').innerText = selectedDate;
+            
+            document.getElementById('summaryCount').innerText = selectedSessions.length + ' Sesi @ RM' + pricePerSession;
+            
+            // Build detailed list of sessions for summary
+            const listHtml = selectedSessions.map(s => `<div>• ${s.time} - ${s.theme}</div>`).join('');
+            document.getElementById('summarySessionsList').innerHTML = listHtml;
+
+            document.querySelectorAll('input[id^="addon-"]').forEach(cb => cb.checked = false);
+            window.updateTotalCalc();
+            window.goToStep('form');
+        };
+
+        window.updateTotalCalc = function() {
+            let total = baseSessionPrice;
+            
+            // Add-ons
+            let addonsList = [];
+            document.querySelectorAll('input[id^="addon-"]').forEach(cb => {
+                if (cb.checked) {
+                    total += parseFloat(cb.dataset.price);
+                    addonsList.push(cb.dataset.name);
+                }
+            });
+
+            // Pax Calculation
+            const adults = parseInt(document.getElementById('adultPax').value) || 0;
+            const children = parseInt(document.getElementById('childPax').value) || 0;
+            
+            // Updated Logic: Strict limit of 6 adults. No surcharge logic for extra pax.
+            if (adults > 6) {
+                window.showToast("Maaf, had maksimum ialah 6 orang dewasa satu slot.");
+                document.getElementById('summaryPaxSurcharge').style.display = 'flex';
+                document.getElementById('summaryPaxSurchargeText').innerText = "Melebihi Had Dewasa (Max 6)!";
+                document.getElementById('summaryPaxSurchargeText').style.color = "red";
+                document.getElementById('summaryPaxSurchargePrice').innerText = "";
+            } else {
+                document.getElementById('summaryPaxSurcharge').style.display = 'none';
+            }
+
+            document.getElementById('summaryPrice').innerText = 'RM' + total.toFixed(2);
+            
+            const summaryAddons = document.getElementById('summaryAddons');
+            if (addonsList.length > 0) {
+                summaryAddons.style.display = 'flex';
+                document.getElementById('summaryAddonsText').innerText = addonsList.join(', ');
+            } else {
+                summaryAddons.style.display = 'none';
+            }
+        };
+
+        // --- COPY ACCOUNT FUNCTION ---
+        window.copyAccount = function() {
+            const accNum = "8605016118";
+            navigator.clipboard.writeText(accNum).then(() => {
+                window.showToast("No. Akaun Disalin!");
+            }).catch(err => {
+                window.showToast("Gagal menyalin. Sila salin manual.");
+            });
+        };
+
+        // --- SUBMIT BOOKING (UPDATED FOR PAYMENT) ---
+        // Step 1: Validate Form and Go to Payment
+        document.getElementById('bookingForm').onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const adultPax = parseInt(document.getElementById('adultPax').value) || 0;
+            
+            if (adultPax > 6) {
+                window.showToast("Maaf, tempahan tidak boleh melebihi 6 orang dewasa.");
+                return;
+            }
+
+            if (!/^[0-9]{9,13}$/.test(phone)) {
+                document.getElementById('phoneError').style.display = 'block'; return;
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                document.getElementById('emailError').style.display = 'block'; return;
+            }
+
+            // Proceed to Payment Step
+            window.goToStep('payment');
+        };
+
+        // Step 2: Final Submit with File
+        window.submitBooking = async function() {
+            // Check file
+            const fileInput = document.getElementById('receiptUpload');
+            if (fileInput.files.length === 0) {
+                window.showToast("Sila muat naik resit pembayaran.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            // Check size (limit to 500KB to be safe for Firestore document size limit which is 1MB)
+            if (file.size > 500 * 1024) {
+                window.showToast("Saiz fail terlalu besar. Sila guna fail < 500KB.");
+                return;
+            }
+
+            // Convert File to Base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async function () {
+                const base64String = reader.result;
+                await window.finalizeBooking(base64String);
+            };
+            reader.onerror = function (error) {
+                window.showToast("Ralat memproses fail.");
+            };
+        };
+
+        window.finalizeBooking = async function(receiptBase64) {
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const adultPax = parseInt(document.getElementById('adultPax').value) || 0;
+            const childPax = parseInt(document.getElementById('childPax').value) || 0;
+
+            // Recalculate price safely
+            let finalPrice = baseSessionPrice;
+            let activeAddons = [];
+            let activeAddonsClean = [];
+            
+            document.querySelectorAll('input[id^="addon-"]').forEach(cb => {
+                if (cb.checked) {
+                    const price = parseFloat(cb.dataset.price);
+                    finalPrice += price;
+                    activeAddons.push(`${cb.dataset.name} (+RM${price})`);
+                    activeAddonsClean.push(cb.dataset.name);
+                }
+            });
+
+            const refId = 'HT-' + Math.floor(10000 + Math.random() * 90000);
+            
+            try {
+                window.showToast("Sedang memproses tempahan...");
+
+                // Prepare Strings for Display/Admin
+                const timeString = selectedSessions.map(s => s.time).join(', ');
+                const themeString = selectedSessions.map(s => `${s.time} (${s.theme})`).join(', ');
+
+                await addDoc(collection(db, DATA_PATH, "bookings"), {
+                    ref: refId,
+                    name, phone, email,
+                    date: selectedDate,
+                    time: timeString, 
+                    theme_display: themeString, 
+                    booked_slots: selectedSessions, 
+                    count: selectedSessions.length,
+                    addons: activeAddons.join(', '),
+                    totalPrice: finalPrice,
+                    status: "PENDING", // Wait for admin to check receipt
+                    timestamp: new Date().toISOString(),
+                    adults: adultPax,
+                    children: childPax,
+                    receipt_base64: receiptBase64 // Store receipt image data
+                });
+
+                // Generate WhatsApp Link
+                const ownerPhone = "60184734035"; 
+                const nl = "%0a";
+                let waText = `Salam nomic Studio, saya dah buat bayaran deposit! 📸${nl}${nl}`;
+                waText += `📋 *BUTIRAN TEMPAHAN*${nl}Ref: *${refId}*${nl}Nama: ${name}${nl}Tarikh: ${selectedDate}${nl}${nl}`;
+                
+                waText += `🕒 *SLOT & TEMA*${nl}`;
+                selectedSessions.forEach(s => {
+                    waText += `- ${s.time}: ${s.theme}${nl}`;
+                });
+                waText += `${nl}`;
+
+                waText += `👥 *BILANGAN ORANG*${nl}Dewasa: ${adultPax}${nl}Kanak-kanak (<6thn): ${childPax}${nl}${nl}`;
+
+                waText += `💰 *TOTAL: RM${finalPrice.toFixed(2)}*${nl}`;
+                waText += `📎 *Resit telah dimuat naik dalam sistem.*${nl}${nl}Mohon semakan pihak admin. Terima kasih!`;
+                
+                const waLink = `https://wa.me/${ownerPhone}?text=${waText}`;
+                
+                // Update Success UI
+                document.getElementById('bookingRef').innerText = refId;
+                document.getElementById('manualWaLink').href = waLink;
+                
+                // Try to open WhatsApp automatically
+                window.open(waLink, '_blank');
+                
+                // Reset and Go to Success
+                document.getElementById('bookingForm').reset();
+                document.getElementById('receiptUpload').value = ''; // Clear file input
+                selectedSessions = [];
+                window.goToStep('success');
+
+            } catch (err) {
+                console.error(err);
+                window.showToast("Gagal menyimpan tempahan. Sila cuba lagi.");
+            }
+        };
+
+        // --- CHECK STATUS ---
+        window.checkStatus = async function() {
+            const phoneInput = document.getElementById('checkPhone').value.trim();
+            const resultContainer = document.getElementById('statusResult');
+            if (!phoneInput) { window.showToast("Sila masukkan nombor telefon."); return; }
+
+            resultContainer.innerHTML = '<div style="text-align:center;">Mencari rekod...</div>';
+            
+            try {
+                const q = query(collection(db, DATA_PATH, "bookings"), where("phone", "==", phoneInput));
+                const querySnapshot = await getDocs(q);
+                
+                resultContainer.innerHTML = '';
+                if (querySnapshot.empty) {
+                    resultContainer.innerHTML = `<p style="color:red; text-align:center; margin-top:20px;">Tiada rekod dijumpai.</p>`;
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const booking = doc.data();
+                        
+                        // Parse display slots
+                        let slotDisplay = booking.theme_display || booking.time;
+
+                        const card = document.createElement('div');
+                        card.className = 'status-card';
+                        card.innerHTML = `
+                            <div style="font-size:0.75rem; color:#888;">ID RUJUKAN</div>
+                            <div style="color:var(--brand-orange); font-weight:bold; font-size:1.1rem;">${booking.ref}</div>
+                            <div style="margin-top:10px; font-weight:bold;">${booking.name}</div>
+                            <div>${booking.date}</div>
+                            <div style="font-size:0.9rem; margin-top:5px; color:#555;">${slotDisplay}</div>
+                            ${booking.addons ? `<div style="font-size:0.8rem; color:#f97316;">+ ${booking.addons}</div>` : ''}
+                            <div style="font-size:0.85rem; font-weight:bold; margin-top:5px;">Total: RM${parseFloat(booking.totalPrice).toFixed(2)}</div>
+                            <div style="margin-top:5px; font-weight:bold; color:${(booking.status === 'PENDING' || !booking.status) ? '#f97316' : '#16a34a'};">STATUS: ${booking.status || 'PENDING'}</div>
+                        `;
+                        resultContainer.appendChild(card);
+                    });
+                }
+            } catch (e) {
+                resultContainer.innerHTML = `<p style="color:red;">Ralat sistem.</p>`;
+            }
+        };
+
+        // --- REVIEWS ---
+        function renderReviews() {
+            const listContainer = document.getElementById('reviewsListContainer');
+            listContainer.innerHTML = '';
+            let total = 0;
+            appReviews.forEach(r => total += r.rating);
+            let avg = appReviews.length > 0 ? (total / appReviews.length).toFixed(1) : 0;
+            
+            document.getElementById('avgRatingNum').innerText = avg;
+            document.getElementById('totalReviewsCount').innerText = appReviews.length;
+            let starStr = '';
+            for(let i=1; i<=5; i++) starStr += (i <= Math.round(avg)) ? '★' : '☆';
+            document.getElementById('avgRatingStars').innerText = starStr;
+
+            appReviews.forEach(review => {
+                const card = document.createElement('div');
+                card.className = 'review-card';
+                let rStars = '';
+                for(let i=0; i<review.rating; i++) rStars += '★';
+                for(let i=review.rating; i<5; i++) rStars += '☆';
+                card.innerHTML = `
+                    <div class="review-header"><span class="review-author">${review.name}</span><span class="review-date">${review.date}</span></div>
+                    <div class="review-stars">${rStars}</div>
+                    <div class="review-text">${review.comment}</div>
+                `;
+                listContainer.appendChild(card);
+            });
+            window.renderAdminReviews(); 
+        }
+
+        window.toggleReviewForm = function() {
+            const form = document.getElementById('reviewFormContainer');
+            form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+        };
+
+        window.setStarRating = function(val) {
+            document.getElementById('reviewRating').value = val;
+            document.querySelectorAll('.star-icon').forEach(star => {
+                const sVal = parseInt(star.dataset.val);
+                star.classList.toggle('active', sVal <= val);
+            });
+        };
+
+        window.submitReview = async function() {
+            const name = document.getElementById('reviewName').value.trim();
+            const comment = document.getElementById('reviewComment').value.trim();
+            const rating = parseInt(document.getElementById('reviewRating').value);
+
+            if(!name || !comment || rating === 0) { window.showToast("Sila lengkapkan semua."); return; }
+
+            try {
+                await addDoc(collection(db, DATA_PATH, "reviews"), {
+                    name, rating, comment,
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: new Date().toISOString()
+                });
+                document.getElementById('reviewName').value = '';
+                document.getElementById('reviewComment').value = '';
+                window.setStarRating(0);
+                window.toggleReviewForm();
+                window.showToast("Terima kasih!");
+            } catch (e) {
+                window.showToast("Gagal hantar review.");
+            }
+        };
+
+        // --- ADMIN LOGIN ---
+        window.handleAdminLogin = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminId').value;
+            const pw = document.getElementById('adminPw').value;
+
+            if (email !== 'nomicstudio01@gmail.com') {
+                 window.showToast("Email admin tidak sah.");
+                 return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pw);
+                window.showToast("Login Berjaya!");
+                // onAuthStateChanged will handle the redirect
+            } catch (error) {
+                console.error("Login Failed", error);
+                if (email === 'nomicstudio01@gmail.com' && pw === 'nomicstudio123#') {
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, pw);
+                        window.showToast("Akaun Admin Dicipta & Log Masuk Berjaya!");
+                        // onAuthStateChanged will handle the redirect
+                    } catch (createError) {
+                         if(createError.code === 'auth/email-already-in-use'){
+                             // If create fails because user exists, it means password was wrong in the first try
+                             window.showToast("Kata laluan salah.");
+                         } else {
+                             window.showToast("Ralat Sistem: " + createError.message);
+                         }
+                    }
+                } else {
+                    window.showToast("Login Gagal: Semak email/password.");
+                }
+            }
+        };
+
+        window.proceedToAdmin = function() {
+            // Clear login fields for security visual
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminPw').value = '';
+            
+            window.loadAdminValues();
+            window.goToStep('admin-dashboard');
+            window.showToast("Selamat datang, Admin!");
+        }
+
+        window.logoutAdmin = async function() {
+            try {
+                await signOut(auth);
+                // onAuthStateChanged will handle sign in anonymously
+                window.goToStep('landing');
+                window.showToast("Anda telah keluar.");
+            } catch (e) {
+                console.error("Logout error", e);
+                window.showToast("Ralat semasa keluar.");
+            }
+        }
+
+        window.loadAdminValues = function() {
+            const bannerList = document.getElementById('adminBannerList');
+            bannerList.innerHTML = '';
+            (appConfig.banners || []).forEach((url, idx) => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `<input type="text" value="${url}" readonly style="flex:1; margin:0; font-size:0.8rem;"><button class="btn-action btn-sm btn-danger" onclick="window.removeBanner(${idx})">X</button>`;
+                bannerList.appendChild(div);
+            });
+
+            document.getElementById('adminTickerText').value = appConfig.ticker || "";
+            document.getElementById('adminHoursMorning').value = appConfig.hours?.morning || "";
+            document.getElementById('adminHoursEvening').value = appConfig.hours?.evening || "";
+            document.getElementById('adminHoursNight').value = appConfig.hours?.night || "";
+            document.getElementById('adminAddress').value = appConfig.location?.address || "";
+            document.getElementById('adminMapUrl').value = appConfig.location?.mapUrl || "";
+            document.getElementById('adminPriceNormal').value = appConfig.prices?.normal || 0;
+            document.getElementById('adminPriceSpecial').value = appConfig.prices?.special || 0;
+            document.getElementById('adminSpecialDates').value = (appConfig.specialDates || []).join(', ');
+            document.getElementById('adminDisabledDates').value = (appConfig.disabledDates || []).join(', ');
+            document.getElementById('adminBookingActive').checked = appConfig.bookingActive;
+
+            const addonList = document.getElementById('adminAddonList');
+            addonList.innerHTML = '';
+            (appConfig.addons || []).forEach((addon, idx) => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `<div style="flex:2; font-size:0.9rem;">${addon.name}</div><div style="flex:1; font-weight:bold;">RM${addon.price}</div><button class="btn-action btn-sm btn-danger" onclick="window.removeAddon(${idx})">X</button>`;
+                addonList.appendChild(div);
+            });
+            
+            // Populate Time Options for Close Slot
+            const timeSelect = document.getElementById('adminCloseTime');
+            timeSelect.innerHTML = '';
+            allTimeSlots.forEach(time => {
+                const opt = document.createElement('option');
+                opt.value = time;
+                opt.innerText = time;
+                timeSelect.appendChild(opt);
+            });
+
+            // Populate Disabled Specific Slots List
+            const disabledList = document.getElementById('adminDisabledSlotsList');
+            disabledList.innerHTML = '';
+            const slots = appConfig.disabledSpecificSlots || [];
+            
+            if (slots.length === 0) {
+                disabledList.innerHTML = '<span style="color:#aaa; font-size:0.8rem;">Tiada slot ditutup.</span>';
+            } else {
+                slots.forEach((slotString, idx) => {
+                    // slotString format: YYYY-MM-DD|hh:mm A
+                    const [date, time] = slotString.split('|');
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:5px 0; font-size:0.85rem;';
+                    div.innerHTML = `
+                        <span>${date} @ ${time}</span>
+                        <button class="btn-action btn-sm" style="width:auto; margin:0; background:#999;" onclick="window.removeDisabledSlot(${idx})">Buka</button>
+                    `;
+                    disabledList.appendChild(div);
+                });
+            }
+
+            window.renderAdminReviews();
+        };
+
+        // NEW: Add Disabled Slot Function
+        window.addDisabledSlot = function() {
+            const date = document.getElementById('adminCloseDate').value;
+            const time = document.getElementById('adminCloseTime').value;
+            
+            if (!date || !time) {
+                window.showToast("Sila pilih tarikh dan masa.");
+                return;
+            }
+            
+            if (!appConfig.disabledSpecificSlots) appConfig.disabledSpecificSlots = [];
+            
+            const key = `${date}|${time}`;
+            if (!appConfig.disabledSpecificSlots.includes(key)) {
+                appConfig.disabledSpecificSlots.push(key);
+                // Sort to keep it tidy
+                appConfig.disabledSpecificSlots.sort();
+                window.loadAdminValues(); // Refresh list UI
+            } else {
+                window.showToast("Slot ini sudah ditutup.");
+            }
+        };
+
+        // NEW: Remove Disabled Slot Function
+        window.removeDisabledSlot = function(idx) {
+            if (appConfig.disabledSpecificSlots) {
+                appConfig.disabledSpecificSlots.splice(idx, 1);
+                window.loadAdminValues(); // Refresh list UI
+            }
+        };
+
+        window.renderAdminReviews = function() {
+            const container = document.getElementById('adminReviewListContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            if (appReviews.length === 0) { container.innerHTML = '<p style="color:#888; font-size:0.8rem;">Tiada review.</p>'; return; }
+
+            appReviews.forEach((r) => {
+                const div = document.createElement('div');
+                div.style.cssText = "background: white; border: 1px solid #eee; padding: 10px; margin-bottom: 5px; font-size:0.8rem; display: flex; justify-content: space-between; align-items: center;";
+                div.innerHTML = `
+                    <div style="flex:1;"><strong>${r.name}</strong> (${r.rating}★)<br><span style="color:#666;">${r.comment.substring(0,30)}...</span></div>
+                    <button class="btn-action btn-sm btn-danger" onclick="window.deleteReview('${r.id}')">Padam</button>
+                `;
+                container.appendChild(div);
+            });
+        };
+
+        window.deleteReview = async function(id) {
+            if(confirm("Padam review ini?")) {
+                await deleteDoc(doc(db, DATA_PATH, "reviews", id));
+                window.showToast("Review dipadam.");
+            }
+        };
+
+        // Admin Helpers
+        window.addBanner = function() {
+            const url = document.getElementById('newBannerUrl').value.trim();
+            if (url) { appConfig.banners.push(url); window.loadAdminValues(); document.getElementById('newBannerUrl').value = ''; }
+        };
+        window.removeBanner = function(idx) { appConfig.banners.splice(idx, 1); window.loadAdminValues(); };
+        window.addAddon = function() {
+            const name = document.getElementById('newAddonName').value.trim();
+            const price = parseFloat(document.getElementById('newAddonPrice').value);
+            if (name && !isNaN(price)) { appConfig.addons.push({name, price}); window.loadAdminValues(); document.getElementById('newAddonName').value = ''; document.getElementById('newAddonPrice').value = ''; }
+        };
+        window.removeAddon = function(idx) { appConfig.addons.splice(idx, 1); window.loadAdminValues(); };
+
+        window.saveAdminSettings = async function() {
+            if(!appConfig.hours) appConfig.hours = {};
+            if(!appConfig.location) appConfig.location = {};
+            if(!appConfig.prices) appConfig.prices = {};
+
+            appConfig.ticker = document.getElementById('adminTickerText').value;
+            appConfig.hours.morning = document.getElementById('adminHoursMorning').value;
+            appConfig.hours.evening = document.getElementById('adminHoursEvening').value;
+            appConfig.hours.night = document.getElementById('adminHoursNight').value;
+            appConfig.location.address = document.getElementById('adminAddress').value;
+            appConfig.location.mapUrl = document.getElementById('adminMapUrl').value;
+            appConfig.prices.normal = parseFloat(document.getElementById('adminPriceNormal').value);
+            appConfig.prices.special = parseFloat(document.getElementById('adminPriceSpecial').value);
+            appConfig.specialDates = document.getElementById('adminSpecialDates').value.split(',').map(d => d.trim()).filter(d => d);
+            appConfig.disabledDates = document.getElementById('adminDisabledDates').value.split(',').map(d => d.trim()).filter(d => d);
+            appConfig.bookingActive = document.getElementById('adminBookingActive').checked;
+            
+            // disabledSpecificSlots is already updated in memory via add/remove functions, no need to read from DOM
+
+            try {
+                await setDoc(doc(db, DATA_PATH, "settings", "config"), appConfig);
+                window.showToast("Tetapan disimpan ke Firebase!");
+                window.goToStep('landing');
+            } catch (e) {
+                console.error(e);
+                window.showToast("Gagal menyimpan tetapan.");
+            }
+        };
+
+        // --- ADMIN DATABASE FUNCTIONS ---
+        
+        window.switchDbView = function(view) {
+            currentDbView = view;
+            const btnDaily = document.getElementById('btnViewDaily');
+            const btnFull = document.getElementById('btnViewFull');
+            const containerDaily = document.getElementById('adminDbDailyContainer');
+            const containerTable = document.getElementById('adminDbTableContainer');
+            const filterDateGroup = document.getElementById('filterDateGroup');
+
+            if(view === 'daily') {
+                btnDaily.style.background = 'var(--brand-black)';
+                btnFull.style.background = '#999';
+                containerDaily.style.display = 'block';
+                containerTable.style.display = 'none';
+                filterDateGroup.style.display = 'block'; 
+                window.loadAdminDatabase(); 
+            } else {
+                btnDaily.style.background = '#999';
+                btnFull.style.background = 'var(--brand-black)';
+                containerDaily.style.display = 'none';
+                containerTable.style.display = 'block';
+                filterDateGroup.style.display = 'none'; 
+                window.loadAdminDatabase(); 
+            }
+        }
+
+        window.loadAdminDatabase = async function() {
+            // Unsubscribe existing listener to prevent duplicates
+            if (dbUnsubscribe) {
+                dbUnsubscribe();
+                dbUnsubscribe = null;
+            }
+
+            const dateValue = document.getElementById('adminDbDate').value;
+            
+            if (currentDbView === 'daily') {
+                document.getElementById('adminDbDailyContainer').innerHTML = '<div style="text-align:center; padding:20px;">Memuatkan data harian...</div>';
+                
+                const q = query(collection(db, DATA_PATH, "bookings"), where("date", "==", dateValue));
+                
+                dbUnsubscribe = onSnapshot(q, (snapshot) => {
+                    dbDataCache = [];
+                    snapshot.forEach(doc => dbDataCache.push({id: doc.id, ...doc.data()}));
+                    dbDataCache.sort((a, b) => a.time.localeCompare(b.time));
+                    window.filterDbDisplay();
+                });
+
+            } else {
+                document.getElementById('adminDbTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;">Memuatkan semua data...</td></tr>';
+                const q = query(collection(db, DATA_PATH, "bookings"));
+                dbUnsubscribe = onSnapshot(q, (snapshot) => {
+                    dbDataCache = [];
+                    snapshot.forEach(doc => dbDataCache.push({id: doc.id, ...doc.data()}));
+                    dbDataCache.sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        return dateB - dateA || a.time.localeCompare(b.time);
+                    });
+                    window.filterDbDisplay();
+                });
+            }
+        };
+
+        window.filterDbDisplay = function() {
+            const statusFilter = document.getElementById('adminDbStatusFilter').value;
+            
+            let filteredData = dbDataCache;
+            if (statusFilter !== 'ALL') {
+                filteredData = dbDataCache.filter(b => (b.status || 'PENDING') === statusFilter);
+            }
+
+            if (currentDbView === 'daily') {
+                window.renderDailyView(filteredData);
+            } else {
+                window.renderFullTableView(filteredData);
+            }
+        }
+
+        window.renderDailyView = function(bookings) {
+            const container = document.getElementById('adminDbDailyContainer');
+            container.innerHTML = '';
+            
+            if(bookings.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Tiada tempahan ditemui.</div>';
+                return;
+            }
+
+            bookings.forEach(b => {
+                const div = document.createElement('div');
+                div.className = 'db-card';
+                const status = b.status || "PENDING";
+                
+                // Fallback for new theme display field
+                const timeTheme = b.theme_display || b.time;
+
+                div.innerHTML = `
+                    <div class="db-card-header">
+                        <div>
+                            <div style="font-weight:bold; font-size:1rem;">${b.name}</div>
+                            <div style="font-size:0.8rem; color:#666;">
+                                ${b.phone}<br>
+                                <span style="color:#444; font-weight:500;">${b.adults || 0} Dws, ${b.children || 0} Knk</span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:bold; color:var(--brand-orange); font-size:0.85rem;">${timeTheme.replace(/, /g, '<br>')}</div>
+                            <div style="font-size:0.8rem;">RM${parseFloat(b.totalPrice).toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <div class="db-detail-row">
+                        <span>Status:</span>
+                        <select class="status-select ${status}" onchange="window.updateBookingStatus('${b.id}', this.value)">
+                            <option value="PENDING" ${status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                            <option value="DEPOSIT" ${status === 'DEPOSIT' ? 'selected' : ''}>DEPOSIT</option>
+                            <option value="SELESAI" ${status === 'SELESAI' ? 'selected' : ''}>SELESAI</option>
+                            <option value="CANCEL" ${status === 'CANCEL' ? 'selected' : ''}>CANCEL</option>
+                        </select>
+                    </div>
+                    <div style="font-size:0.75rem; color:#aaa; margin-top:5px;">Ref: ${b.ref}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.renderFullTableView = function(bookings) {
+            const tbody = document.getElementById('adminDbTableBody');
+            tbody.innerHTML = '';
+
+            if(bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Tiada data.</td></tr>';
+                return;
+            }
+
+            bookings.forEach(b => {
+                const tr = document.createElement('tr');
+                const status = b.status || "PENDING";
+                const timeTheme = b.theme_display || b.time;
+                
+                const receiptHtml = b.receipt_base64 
+                    ? `<button class="btn-table" style="background:#8b5cf6;" onclick="window.viewReceipt('${b.id}')">Lihat</button>`
+                    : `<span style="color:#999; font-size:0.7rem;">Tiada</span>`;
+
+                tr.innerHTML = `
+                    <td>${b.ref}</td>
+                    <td>${b.date}</td>
+                    <td>${b.name}</td>
+                    <td>${b.adults||0} D, ${b.children||0} K</td>
+                    <td>${b.phone}</td>
+                    <td>${timeTheme}</td>
+                    <td>RM${parseFloat(b.totalPrice).toFixed(2)}</td>
+                    <td>
+                        <select class="status-select ${status}" onchange="window.updateBookingStatus('${b.id}', this.value)" style="font-size:0.75rem; padding: 2px;">
+                            <option value="PENDING" ${status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                            <option value="DEPOSIT" ${status === 'DEPOSIT' ? 'selected' : ''}>DEPOSIT</option>
+                            <option value="SELESAI" ${status === 'SELESAI' ? 'selected' : ''}>SELESAI</option>
+                            <option value="CANCEL" ${status === 'CANCEL' ? 'selected' : ''}>CANCEL</option>
+                        </select>
+                    </td>
+                    <td style="text-align:center;">${receiptHtml}</td>
+                    <td>
+                        <div class="action-btn-group">
+                            <button class="btn-table btn-edit" onclick="window.openEditBooking('${b.id}')">Edit</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // NEW: DOWNLOAD EXCEL (CSV) FUNCTION
+        window.downloadExcel = function() {
+            const statusFilter = document.getElementById('adminDbStatusFilter').value;
+            let dataToExport = dbDataCache;
+            
+            // Apply current status filter if active
+            if (statusFilter !== 'ALL') {
+                dataToExport = dbDataCache.filter(b => (b.status || 'PENDING') === statusFilter);
+            }
+            
+            if (dataToExport.length === 0) {
+                window.showToast("Tiada data untuk dimuat turun.");
+                return;
+            }
+
+            const rows = [];
+            // CSV Header
+            rows.push(["Ref ID", "Tarikh", "Nama Pelanggan", "No. Telefon", "Email", "Masa & Tema", "Jumlah Harga", "Status", "Add-ons", "Dewasa", "Kanak-kanak"]);
+
+            dataToExport.forEach(b => {
+                // Formatting data for CSV (Handle commas in text by wrapping in quotes)
+                const addonsStr = b.addons ? b.addons.replace(/,/g, " + ") : "-";
+                const timeStr = b.theme_display || b.time;
+                rows.push([
+                    `"${b.ref}"`,
+                    `"${b.date}"`,
+                    `"${b.name}"`,
+                    `"${b.phone}"`,
+                    `"${b.email}"`,
+                    `"${timeStr}"`,
+                    `"${parseFloat(b.totalPrice).toFixed(2)}"`,
+                    `"${b.status || 'PENDING'}"`,
+                    `"${addonsStr}"`,
+                    `"${b.adults || 0}"`,
+                    `"${b.children || 0}"`
+                ]);
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for Excel UTF-8 support
+            rows.forEach(e => {
+                csvContent += e.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Database_nomic_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.updateBookingStatus = async function(id, newStatus) {
+            try {
+                // Logic requested: If status is CANCEL, set date and time to "Cancel" to free up slot
+                const updates = { status: newStatus };
+                if (newStatus === 'CANCEL') {
+                    updates.date = "Cancel";
+                    updates.time = "Cancel";
+                }
+
+                await updateDoc(doc(db, DATA_PATH, "bookings", id), updates);
+                window.showToast(`Status dikemaskini: ${newStatus}`);
+            } catch (e) {
+                console.error(e);
+                window.showToast("Gagal kemaskini status.");
+            }
+        };
+
+        // NEW: OPEN EDIT MODAL
+        window.openEditBooking = function(id) {
+            const booking = dbDataCache.find(b => b.id === id);
+            if(!booking) return;
+
+            document.getElementById('editBookingId').value = id;
+            document.getElementById('editName').value = booking.name;
+            document.getElementById('editPhone').value = booking.phone;
+            document.getElementById('editDate').value = booking.date;
+            
+            // Show simple time string in edit modal (might lose theme info if edited purely by text)
+            // Ideally we'd have a theme selector here too, but for simplicity:
+            document.getElementById('editTime').value = booking.time;
+            
+            document.getElementById('editBookingModal').style.display = 'block';
+        };
+
+        // NEW: CLOSE EDIT MODAL
+        window.closeEditModal = function() {
+            document.getElementById('editBookingModal').style.display = 'none';
+        };
+
+        // NEW: SAVE EDITED BOOKING
+        window.saveEditedBooking = async function() {
+            const id = document.getElementById('editBookingId').value;
+            const updates = {
+                name: document.getElementById('editName').value,
+                phone: document.getElementById('editPhone').value,
+                date: document.getElementById('editDate').value,
+                time: document.getElementById('editTime').value
+            };
+
+            if(!updates.name || !updates.phone || !updates.date || !updates.time) {
+                window.showToast("Sila lengkapkan semua maklumat.");
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, DATA_PATH, "bookings", id), updates);
+                window.showToast("Tempahan berjaya dikemaskini.");
+                window.closeEditModal();
+            } catch (e) {
+                console.error("Update Error", e);
+                window.showToast("Gagal mengemaskini tempahan.");
+            }
+        };
+
+        // NEW: VIEW RECEIPT MODAL
+        window.viewReceipt = function(id) {
+            const booking = dbDataCache.find(b => b.id === id);
+            if(!booking || !booking.receipt_base64) return;
+            
+            const container = document.getElementById('receiptPreviewContainer');
+            container.innerHTML = '';
+            
+            // Semak jika format adalah PDF atau Gambar
+            if (booking.receipt_base64.startsWith('data:application/pdf')) {
+                container.innerHTML = `<embed src="${booking.receipt_base64}" type="application/pdf" width="100%" height="400px" />
+                <br><a href="${booking.receipt_base64}" download="Resit_${booking.ref}.pdf" class="btn-action btn-sm" style="display:inline-block; margin-top:15px; text-decoration:none; width:auto;">Muat Turun PDF</a>`;
+            } else {
+                container.innerHTML = `<img src="${booking.receipt_base64}" style="max-width:100%; height:auto; border-radius:8px; border:1px solid #eee;">
+                <br><a href="${booking.receipt_base64}" download="Resit_${booking.ref}.png" class="btn-action btn-sm" style="display:inline-block; margin-top:15px; text-decoration:none; width:auto;">Muat Turun Imej</a>`;
+            }
+            
+            document.getElementById('receiptModal').style.display = 'block';
+        };
+
+        window.closeReceiptModal = function() {
+            document.getElementById('receiptModal').style.display = 'none';
+        };
+
+        // Close modal if user clicks outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('editBookingModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+            const modalTheme = document.getElementById('themeModal');
+            if (event.target == modalTheme) {
+                modalTheme.style.display = "none";
+            }
+            const modalReceipt = document.getElementById('receiptModal');
+            if (event.target == modalReceipt) {
+                modalReceipt.style.display = "none";
+            }
+        }
+
+        // Start
+        initApp();
+
+        // --- FLOATING BUTTON LOGIC ---
+        const waBtn = document.getElementById('floatingWa');
+        let isDragging = false;
+        let dragMoved = false;
+        let startX, startY, initialLeft, initialTop;
+
+        function handleStart(e) {
+            isDragging = true;
+            dragMoved = false;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            startX = clientX;
+            startY = clientY;
+            
+            // Set fixed position on start to allow movement
+            const rect = waBtn.getBoundingClientRect();
+            waBtn.style.bottom = 'auto';
+            waBtn.style.right = 'auto';
+            waBtn.style.left = rect.left + 'px';
+            waBtn.style.top = rect.top + 'px';
+            
+            initialLeft = rect.left;
+            initialTop = rect.top;
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            // Threshold to consider it a drag
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                dragMoved = true;
+                e.preventDefault(); // Prevent scroll if dragging
+            }
+
+            waBtn.style.left = (initialLeft + dx) + 'px';
+            waBtn.style.top = (initialTop + dy) + 'px';
+        }
+
+        function handleEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // If it was just a click (no significant move)
+            if (!dragMoved) {
+                const pretext = encodeURIComponent("Nak tanya Pakej Studio Raya");
+                window.open(`https://wa.me/60184734035?text=${pretext}`, '_blank');
+            }
+        }
+
+        // Add Listeners
+        waBtn.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        
+        waBtn.addEventListener('touchstart', handleStart, {passive: false});
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        waBtn.addEventListener('touchend', handleEnd);
+
+    </script>
+</body>
+</html>
